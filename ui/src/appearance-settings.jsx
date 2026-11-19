@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { api, native, nativeAvailable } from "./api";
 import { useAppearance } from "./appearance";
+import { useI18n, supportedLocales, localeNames } from "./i18n";
 import { isLinux } from "./platform.mjs";
 import {
   colorGroups,
@@ -379,6 +380,7 @@ function ThemeCard({ variant, value, active, onChange, codeFonts }) {
   );
 }
 function ThemeLibrary({ appearance, update, saving, onError }) {
+  const { t } = useI18n();
   const themes = appearance.customThemes;
   const matching = themes.find((item) => sameTheme(item, appearance));
   const [selectedId, setSelectedId] = useState(matching?.id || "");
@@ -436,7 +438,7 @@ function ThemeLibrary({ appearance, update, saving, onError }) {
       ) {
         setSelectedId(item.id);
         setName(title);
-        setNotice("主题已保存");
+        setNotice(t("主题已保存"));
       }
     });
   const importText = async (text) => {
@@ -459,7 +461,7 @@ function ThemeLibrary({ appearance, update, saving, onError }) {
     ) {
       setSelectedId(item.id);
       setName(item.name);
-      setNotice("主题已导入并应用");
+      setNotice(t("主题已导入并应用"));
     }
   };
   const importFile = () => {
@@ -484,7 +486,7 @@ function ThemeLibrary({ appearance, update, saving, onError }) {
           .slice(0, 80) + ".cage-theme.json";
       if (nativeAvailable()) {
         if (await native("exportTheme", { text, filename }))
-          setNotice("主题已导出");
+          setNotice(t("主题已导出"));
       } else {
         const url = URL.createObjectURL(
           new Blob([text], { type: "application/json" }),
@@ -496,24 +498,24 @@ function ThemeLibrary({ appearance, update, saving, onError }) {
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        setNotice("已开始下载主题文件");
+        setNotice(t("已开始下载主题文件"));
       }
     });
   return (
-    <section className="theme-library" aria-label="我的主题">
+    <section className="theme-library" aria-label={t("我的主题")}>
       <div className="theme-library-heading">
         <div>
-          <h4>我的主题</h4>
-          <p>保存浅色、深色两套配色与字体，随时切换或分享。</p>
+          <h4>{t("我的主题")}</h4>
+          <p>{t("保存浅色、深色两套配色与字体，随时切换或分享。")}</p>
         </div>
         <div className="theme-file-actions">
           <button disabled={busy || saving} onClick={importFile}>
             <Upload size={14} />
-            导入主题
+            {t("导入主题")}
           </button>
           <button disabled={busy} onClick={exportFile}>
             <Download size={14} />
-            导出主题
+            {t("导出主题")}
           </button>
         </div>
       </div>
@@ -522,21 +524,21 @@ function ThemeLibrary({ appearance, update, saving, onError }) {
         type="file"
         accept=".json,application/json"
         hidden
-        aria-label="选择主题文件"
+        aria-label={t("选择主题文件")}
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = "";
           if (file)
             void run(async () => {
               if (file.size > themeFileLimit)
-                throw new Error("主题文件不能超过 256 KB");
+                throw new Error(t("主题文件不能超过 256 KB"));
               await importText(await file.text());
             });
         }}
       />
       <div className="theme-library-fields">
         <InlineSelect
-          aria-label="已保存的主题"
+          aria-label={t("已保存的主题")}
           value={current?.id || ""}
           disabled={busy || saving}
           onValueChange={(next) => {
@@ -545,18 +547,18 @@ function ThemeLibrary({ appearance, update, saving, onError }) {
           }}
         >
           <option value="" disabled>
-            {themes.length ? "选择已保存的主题" : "尚无自定义主题"}
+            {themes.length ? t("选择已保存的主题") : t("尚无自定义主题")}
           </option>
           {themes.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
-              {item.id === current?.id && dirty ? " · 已修改" : ""}
+              {item.id === current?.id && dirty ? t(" · 已修改") : ""}
             </option>
           ))}
         </InlineSelect>
         <input
-          aria-label="主题名称"
-          placeholder="为当前配色命名"
+          aria-label={t("主题名称")}
+          placeholder={t("为当前配色命名")}
           value={name}
           maxLength={80}
           onChange={(e) => setName(e.target.value)}
@@ -565,24 +567,24 @@ function ThemeLibrary({ appearance, update, saving, onError }) {
           disabled={busy || saving || !name.trim()}
           onClick={() => save(false)}
         >
-          另存为主题
+          {t("另存为主题")}
         </button>
       </div>
       {current && (
         <div className="theme-library-manage">
           <span>
-            {dirty ? "当前配色有未存入主题的修改" : "当前配色与已保存主题一致"}
+            {dirty ? t("当前配色有未存入主题的修改") : t("当前配色与已保存主题一致")}
           </span>
           {dirty && (
             <button disabled={busy || saving} onClick={() => apply(current)}>
-              恢复已保存配色
+              {t("恢复已保存配色")}
             </button>
           )}
           <button
             disabled={busy || saving || !name.trim()}
             onClick={() => save(true)}
           >
-            更新此主题
+            {t("更新此主题")}
           </button>
           <button
             disabled={busy || saving}
@@ -600,12 +602,12 @@ function ThemeLibrary({ appearance, update, saving, onError }) {
                 ) {
                   setSelectedId("");
                   setName("");
-                  setNotice("主题已删除，当前配色已保留");
+                  setNotice(t("主题已删除，当前配色已保留"));
                 }
               })
             }
           >
-            删除
+            {t("删除")}
           </button>
         </div>
       )}
@@ -620,6 +622,7 @@ function ThemeLibrary({ appearance, update, saving, onError }) {
 export function AppearanceSettings() {
   const { appearance, theme, variant, loading, saving, error, update, retry } =
     useAppearance();
+  const { t, locale, setLocale } = useI18n();
   const [codeFonts, setCodeFonts] = useState(isLinux ? [] : codeFontSuggestions);
   useEffect(() => {
     if (isLinux) void installedLinuxCodeFonts().then(setCodeFonts);
@@ -651,19 +654,35 @@ export function AppearanceSettings() {
   return (
     <div className="appearance-settings">
       <div className="section-title">
-        <h3>外观</h3>
-        <p>更改自动保存并即时生效，无需重启项目。</p>
+        <h3>{t("外观")}</h3>
+        <p>{t("更改自动保存并即时生效，无需重启项目。")}</p>
       </div>
       <fieldset disabled={loading || syncing} className="appearance-fields">
         <SettingRow
-          label="主题"
-          description="跟随系统，或固定使用浅色、深色外观。"
+          label={t("语言")}
+          description={t("界面语言，切换后立即生效。")}
+        >
+          <InlineSelect
+            aria-label={t("语言")}
+            value={locale}
+            onValueChange={setLocale}
+          >
+            {supportedLocales.map((code) => (
+              <option key={code} value={code}>
+                {localeNames[code]}
+              </option>
+            ))}
+          </InlineSelect>
+        </SettingRow>
+        <SettingRow
+          label={t("主题")}
+          description={t("跟随系统，或固定使用浅色、深色外观。")}
         >
           <div className="appearance-mode" role="group" aria-label="主题模式">
             {[
-              ["light", "浅色", Sun],
-              ["dark", "深色", Moon],
-              ["system", "跟随系统", Monitor],
+              ["light", t("浅色"), Sun],
+              ["dark", t("深色"), Moon],
+              ["system", t("跟随系统"), Monitor],
             ].map(([mode, label, Icon]) => (
               <button
                 key={mode}
@@ -700,24 +719,24 @@ export function AppearanceSettings() {
             />
           ))}
         </div>
-        <h4>字体</h4>
+        <h4>{t("字体")}</h4>
         <SettingRow
-          label="界面字号"
-          description="调整导航、标签和设置中的文字大小。"
+          label={t("界面字号")}
+          description={t("调整导航、标签和设置中的文字大小。")}
         >
           <FontSizeInput
-            label="界面字号"
+            label={t("界面字号")}
             value={appearance.uiFontSize}
             min={12}
             onChange={(value) => patch({ uiFontSize: value })}
           />
         </SettingRow>
         <SettingRow
-          label="代码字号"
-          description="调整内置终端与代码预览的文字大小。"
+          label={t("代码字号")}
+          description={t("调整内置终端与代码预览的文字大小。")}
         >
           <FontSizeInput
-            label="代码字号"
+            label={t("代码字号")}
             value={appearance.codeFontSize}
             min={10}
             onChange={(value) => patch({ codeFontSize: value })}
@@ -727,7 +746,7 @@ export function AppearanceSettings() {
           className="appearance-sample"
           style={{ fontFamily: theme.fonts.ui || systemUIFont }}
         >
-          <span>在熟悉的工作区，专注下一步。</span>
+          <span>{t("在熟悉的工作区，专注下一步。")}</span>
           <code
             style={{
               fontFamily: theme.fonts.code || systemCodeFont,
@@ -737,47 +756,47 @@ export function AppearanceSettings() {
             const workspace = "Cage";
           </code>
         </div>
-        <h4>显示与交互</h4>
+        <h4>{t("显示与交互")}</h4>
         <SettingRow
-          label="使用指针光标"
-          description="悬停在按钮等可交互元素上时显示手形。"
+          label={t("使用指针光标")}
+          description={t("悬停在按钮等可交互元素上时显示手形。")}
         >
           <label className="appearance-switch">
             <input
               type="checkbox"
               role="switch"
-              aria-label="使用指针光标"
+              aria-label={t("使用指针光标")}
               checked={appearance.pointerCursors}
               onChange={(e) => patch({ pointerCursors: e.target.checked })}
             />
           </label>
         </SettingRow>
-        <SettingRow label="字体平滑">
+        <SettingRow label={t("字体平滑")}>
           <label className="appearance-switch">
             <input
               type="checkbox"
               role="switch"
-              aria-label="字体平滑"
+              aria-label={t("字体平滑")}
               checked={appearance.fontSmoothing}
               onChange={(e) => patch({ fontSmoothing: e.target.checked })}
             />
           </label>
         </SettingRow>
-        <SettingRow label="减少动态效果">
+        <SettingRow label={t("减少动态效果")}>
           <InlineSelect
-            aria-label="减少动态效果"
+            aria-label={t("减少动态效果")}
             value={appearance.reducedMotion}
             onValueChange={(next) => patch({ reducedMotion: next })}
           >
-            <option value="system">跟随系统</option>
-            <option value="on">开启</option>
-            <option value="off">关闭</option>
+            <option value="system">{t("跟随系统")}</option>
+            <option value="on">{t("开启")}</option>
+            <option value="off">{t("关闭")}</option>
           </InlineSelect>
         </SettingRow>
         <div className="appearance-import">
           <div>
-            <strong>沿用 Codex 的外观</strong>
-            <p>导入本机 Codex 当前的主题、配色与字体偏好。</p>
+            <strong>{t("沿用 Codex 的外观")}</strong>
+            <p>{t("导入本机 Codex 当前的主题、配色与字体偏好。")}</p>
           </div>
           <button onClick={sync}>
             {syncing ? (
@@ -785,7 +804,7 @@ export function AppearanceSettings() {
             ) : (
               <Download size={15} />
             )}
-            从本机 Codex 同步
+            {t("从本机 Codex 同步")}
           </button>
         </div>
       </fieldset>
@@ -793,19 +812,19 @@ export function AppearanceSettings() {
         {saving ? (
           <>
             <LoaderCircle size={13} className="spin" />
-            正在保存…
+            {t("正在保存…")}
           </>
         ) : error ? (
           <>
-            <span>未保存</span>
+            <span>{t("未保存")}</span>
             <button className="text-button" onClick={retry}>
-              重试保存
+              {t("重试保存")}
             </button>
           </>
         ) : (
           <>
             <Check size={14} />
-            {synced ? "已同步 Codex 外观" : "更改自动保存，即时生效"}
+            {synced ? t("已同步 Codex 外观") : t("更改自动保存，即时生效")}
           </>
         )}
       </div>

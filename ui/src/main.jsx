@@ -24,6 +24,7 @@ import { SettingsPanel } from "./settings";
 import { SetupProgress } from "./setup-progress";
 import { GuestSystemPicker, validGuestChoice } from "./guest-system-picker";
 import { AppearanceProvider } from "./appearance";
+import { I18nProvider, useI18n } from "./i18n";
 import { EnvironmentShield } from "./environment-shield";
 import { TailscalePanel } from "./tailscale";
 import { WorkspaceSidebar } from "./workspace-sidebar";
@@ -65,6 +66,7 @@ import { guestCapability } from "./guest-capabilities.mjs";
 
 function App() {
   const { account } = useAccount();
+  const { t } = useI18n();
   const [, refreshClientPreferences] = useState(0);
   useEffect(() => {
     const refresh = () => refreshClientPreferences((value) => value + 1);
@@ -126,11 +128,11 @@ function App() {
   // Keep feedback continuous until polling observes the accepted start job.
   const clientStatus = serverStatus && { ...serverStatus, keyboard: clientKeyboard(serverStatus.keyboard) };
   const status = clientStatus && startRequest
-    ? { ...clientStatus, job: { running: true, kind: "start", message: "正在启动 Cage 环境…" } }
+    ? { ...clientStatus, job: { running: true, kind: "start", message: t("正在启动 Cage 环境…") } }
     : clientStatus;
   const system = status?.guest_system || account?.guest_system;
   const macGuest = system === "macos";
-  const nativeGuestLabel = {macos: "macOS", "windows-11": "Windows", "windows-remote": "Windows 云端"}[system];
+  const nativeGuestLabel = {macos: "macOS", "windows-11": "Windows", "windows-remote": t("Windows 云端")}[system];
   const { active } = layout;
   const setActive = id => setLayout(previous => focusTab(previous, id));
   const workspaceBox = useRef(null);
@@ -275,25 +277,25 @@ function App() {
     terminal && !showHome ? current.workspace : workspace;
   const setupProxy = !nativeGuestLabel && needsProxySetup(settings, status, proxy);
   const network = connectionError
-    ? { mode: "unknown", label: "外网状态待确认" }
+    ? { mode: "unknown", label: t("外网状态待确认") }
     : networkState(status);
   const runtimeLabel = connectionError
-    ? "连接中断"
+    ? t("连接中断")
     : busy
       ? network.mode === "checking" || status?.job?.kind === "safety"
-        ? "检查中"
+        ? t("检查中")
         : status?.job?.kind === "stop"
-          ? "停止中"
+          ? t("停止中")
           : running
-            ? "应用中"
-            : "启动中"
+            ? t("应用中")
+            : t("启动中")
       : status?.ready
         ? network.mode === "open"
-          ? "运行中"
-          : "离线可用"
+          ? t("运行中")
+          : t("离线可用")
         : running
-          ? status?.environment_update_required ? "环境待更新" : "浏览器待恢复"
-          : "已停止";
+          ? status?.environment_update_required ? t("环境待更新") : t("浏览器待恢复")
+          : t("已停止");
   const notify = (text) => setToast(text);
   // A Linux environment keeps what it learned about project files for a while.
   const projectFilesCached = settings?.project_file_cache === true &&
@@ -302,7 +304,7 @@ function App() {
     setProjectRefreshing(true);
     try {
       await api("/projects/refresh", {});
-      setToast("项目文件已刷新");
+      setToast(t("项目文件已刷新"));
     } catch (error) {
       setToast(error.message);
     } finally {
@@ -536,7 +538,7 @@ function App() {
     }
   };
   const archiveSession = async (session, anchor) => {
-    await confirm({title:"归档这段会话？", body:"归档会关闭关联终端。历史将保留，可从设置中的已归档会话恢复。", confirm:"归档会话", pendingLabel:"正在归档…", anchor,
+    await confirm({title:t("归档这段会话？"), body:t("归档会关闭关联终端。历史将保留，可从设置中的已归档会话恢复。"), confirm:t("归档会话"), pendingLabel:t("正在归档…"), anchor,
       submit: async () => {
         await api("/cli/sessions/" + session.id + "/archive", {});
         setTabs(list => list.filter(tab => tab.cli_session_id !== session.id));
@@ -596,9 +598,9 @@ function App() {
       if (
         !tab.closed &&
         !(await confirm({
-          title: "关闭这个终端会话？",
-          body: "该终端中的交互命令可能被中断。网页和其他终端不受影响。",
-          confirm: "关闭终端",
+          title: t("关闭这个终端会话？"),
+          body: t("该终端中的交互命令可能被中断。网页和其他终端不受影响。"),
+          confirm: t("关闭终端"),
         }))
       )
         return;
@@ -612,9 +614,9 @@ function App() {
       if (
         tab.kind === "editor" &&
         !(await confirm({
-          title: "关闭文件编辑器？",
-          body: "请先保存未完成的修改。文件仍保留在共享项目中。",
-          confirm: "关闭编辑器",
+          title: t("关闭文件编辑器？"),
+          body: t("请先保存未完成的修改。文件仍保留在共享项目中。"),
+          confirm: t("关闭编辑器"),
         }))
       )
         return;
@@ -664,9 +666,9 @@ function App() {
   const stop = async () => {
     if (
       await confirm({
-        title: setupProgress ? "停止安装环境？" : "停止当前环境？",
-        body: setupProgress ? "当前安装任务会停止。下次启动环境时可以继续安装。" : "请先保存文件。当前终端会话会结束，浏览器登录和项目文件会保留。",
-        confirm: setupProgress ? "停止安装" : "停止环境",
+        title: setupProgress ? t("停止安装环境？") : t("停止当前环境？"),
+        body: setupProgress ? t("当前安装任务会停止。下次启动环境时可以继续安装。") : t("请先保存文件。当前终端会话会结束，浏览器登录和项目文件会保留。"),
+        confirm: setupProgress ? t("停止安装") : t("停止环境"),
       })
     )
       await action("/stop");
@@ -1135,18 +1137,18 @@ function App() {
         }
         if (connectionError || fatal) {
           setDialog({
-            title: "退出 Cage",
-            body: "工作台连接已中断，暂时无法确认环境状态。仍在运行的后台任务会继续。",
-            confirm: "仅退出桌面应用",
+            title: t("退出 Cage"),
+            body: t("工作台连接已中断，暂时无法确认环境状态。仍在运行的后台任务会继续。"),
+            confirm: t("仅退出桌面应用"),
             resolve: (confirmed) => confirmed && native("quitNow"),
           });
           return;
         }
         setDialog({
-          title: "退出 Cage",
-          body: "退出前请保存文件和设置。可以保留环境，让后台任务继续运行；下次打开会重新连接。",
-          confirm: "停止环境并退出",
-          secondary: "保留运行并退出",
+          title: t("退出 Cage"),
+          body: t("退出前请保存文件和设置。可以保留环境，让后台任务继续运行；下次打开会重新连接。"),
+          confirm: t("停止环境并退出"),
+          secondary: t("保留运行并退出"),
           resolve: async (result) => {
             if (result === "secondary") {
               await native("quitNow");
@@ -1184,6 +1186,7 @@ function App() {
     macGuest,
     desktopOpen,
     terminalChoice,
+    t,
   ]);
   const project = projectName(contentWorkspace, groups);
   const tabLayoutKey = status?.environment_identity_directory || status?.environment_directory || status?.workspace;
@@ -1196,7 +1199,7 @@ function App() {
   const claudeLabels = new Map(claudeProfiles.accounts?.map((account) => [account.id, account.label || account.email]));
   const claudeNumbers = new Map(claudeProfiles.accounts?.map((account, index) => [account.id, index + 1]));
   const terminalAccountName = (tab) => claudeLabels.get(tab.claude_account_id) ||
-    (tab.terminalKind === "claude-login" ? "新账号登录" : tab.claude_account_id ? "Claude 账号" : "");
+    (tab.terminalKind === "claude-login" ? t("新账号登录") : tab.claude_account_id ? t("Claude 账号") : "");
   const displayTabs = orderedTabs(tabs, metadata).map((tab) =>
     tab.claude_account_id || tab.terminalKind === "claude-login" ? { ...tab,
       claudeLabel: terminalAccountName(tab), claudeAccountNumber: claudeNumbers.get(tab.claude_account_id) } : tab);
@@ -2101,5 +2104,5 @@ function App() {
   );
 }
 export default function Workbench() {
-  return <AccountProvider><AppearanceProvider><AccountGate><InitializationGate><App /></InitializationGate></AccountGate></AppearanceProvider></AccountProvider>;
+  return <AccountProvider><AppearanceProvider><I18nProvider><AccountGate><InitializationGate><App /></InitializationGate></AccountGate></I18nProvider></AppearanceProvider></AccountProvider>;
 }
